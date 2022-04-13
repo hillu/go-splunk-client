@@ -9,6 +9,9 @@ import (
 // SearchOptions encapsulates options passed to search jobs.
 type SearchOptions struct{ v url.Values }
 
+// NewSearchOptions creates an empty SearchOptions object.
+func NewSearchOptions() *SearchOptions { return &SearchOptions{} }
+
 // Earliest sets the earliest_time parameter
 func (so *SearchOptions) Earliest(timespec string) *SearchOptions {
 	return so.Set("earliest_time", timespec)
