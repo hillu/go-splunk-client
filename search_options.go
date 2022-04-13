@@ -47,6 +47,14 @@ func (so *SearchOptions) RequiredField(fieldname string) *SearchOptions {
 	return so.Add("rt", fieldname)
 }
 
+// RequiredFields adds multiple rf parameters
+func (so *SearchOptions) RequiredFields(fieldnames ...string) *SearchOptions {
+	for _, fieldname := range fieldnames {
+		so.Add("rt", fieldname)
+	}
+	return so
+}
+
 // Add adds a generic key/value parameter
 func (so *SearchOptions) Add(key, value string) *SearchOptions {
 	if so.v == nil {
