@@ -80,4 +80,14 @@ func TestExport(t *testing.T) {
 		t.Logf("results: %#v", results)
 	}
 
+	ej, err = c.SearchExport(`search index=* | head 1`, nil)
+	if err != nil {
+		t.Errorf("export: unexpected error %+v", err)
+	} else if results := ej.Drain(); ej.Error != nil {
+		t.Errorf("export: unexpected error %+v", ej.Error)
+	} else if len(results) != 1 {
+		t.Error("export: short read")
+	} else {
+		t.Logf("results: %#v", results)
+	}
 }

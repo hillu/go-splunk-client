@@ -16,8 +16,11 @@ type ExportJob struct {
 		Fields     []string
 	}
 
-	CurrentRow map[string]string
-	Error      error
+	// Key/value representation of a single record. Values may be
+	// strings or string slices.
+	CurrentRow map[string]interface{}
+	// Last error
+	Error error
 
 	stream  io.ReadCloser
 	decoder *json.Decoder
@@ -87,7 +90,7 @@ func (ej *ExportJob) Next() bool {
 	if ej.done {
 		return false
 	}
-	var values []string
+	var values []json.RawMessage
 	if !ej.decoder.More() {
 		for _, expected := range "]}" {
 			if t, err := ej.decoder.Token(); err != nil {
@@ -105,9 +108,23 @@ func (ej *ExportJob) Next() bool {
 		return ej.setError(fmt.Errorf("record length mismatch: %d, expected %d",
 			len(values), len(ej.Header.Fields)))
 	}
-	ej.CurrentRow = make(map[string]string, len(values))
+	ej.CurrentRow = make(map[string]interface{}, len(values))
 	for i := 0; i < len(values); i++ {
-		ej.CurrentRow[ej.Header.Fields[i]] = values[i]
+		var elem interface{}
+		var err error
+		if len(values[i]) > 0 && values[i][0] == '[' {
+			var v []string
+			err = json.Unmarshal(values[i], &v)
+			elem = v
+		} else {
+			var v string
+			err = json.Unmarshal(values[i], &v)
+			elem = v
+		}
+		if err != nil {
+			return ej.setError(fmt.Errorf("Can't deserialize << %s >>", string(values[i])))
+		}
+		ej.CurrentRow[ej.Header.Fields[i]] = elem
 	}
 	return true
 }
@@ -120,7 +137,7 @@ func (ej *ExportJob) setError(err error) bool {
 }
 
 // Drain returns all remaining records from the export search. This may block.
-func (ej *ExportJob) Drain() (r []map[string]string) {
+func (ej *ExportJob) Drain() (r []map[string]interface{}) {
 	for ej.Next() {
 		r = append(r, ej.CurrentRow)
 	}
