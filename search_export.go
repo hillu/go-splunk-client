@@ -89,15 +89,12 @@ func (ej *ExportJob) Next() bool {
 	}
 	var values []string
 	if !ej.decoder.More() {
-		if t, err := ej.decoder.Token(); err != nil {
-			return ej.setError(err)
-		} else if t != json.Delim(']') {
-			return ej.setError(fmt.Errorf("expected ']', got %v", t))
-		}
-		if t, err := ej.decoder.Token(); err != nil {
-			return ej.setError(err)
-		} else if t != json.Delim('}') {
-			return ej.setError(fmt.Errorf("expected '}', got %v", t))
+		for _, expected := range "]}" {
+			if t, err := ej.decoder.Token(); err != nil {
+				return ej.setError(err)
+			} else if t != json.Delim(expected) {
+				return ej.setError(fmt.Errorf("expected %v, got %v", expected, t))
+			}
 		}
 		return ej.setError(nil)
 	}
