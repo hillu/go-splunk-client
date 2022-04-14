@@ -34,7 +34,7 @@ func TestAuth(t *testing.T) {
 		if err == nil {
 			t.Error("unauthenticated search succeeded (but shouldn't have)")
 		}
-		t.Logf("error  = %+v", err)
+		t.Logf("expected error: %+v", err)
 	}
 	_, err = c.SearchBlocking("gobbledigoop", nil)
 	if err == nil {

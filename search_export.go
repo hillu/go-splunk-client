@@ -37,7 +37,7 @@ func newExportJob(stream io.ReadCloser) (*ExportJob, error) {
 	if t, err := ej.decoder.Token(); err != nil {
 		return nil, err
 	} else if t != json.Delim('{') {
-		return nil, fmt.Errorf("expected '{', got %v", t)
+		return nil, errWrongToken("[", t)
 	}
 	// read document by hand until ` "rows":[ `
 	for {
@@ -47,14 +47,14 @@ func newExportJob(stream io.ReadCloser) (*ExportJob, error) {
 		}
 		k, ok := t.(string)
 		if !ok {
-			return nil, fmt.Errorf("expected string, got %v", t)
+			return nil, errWrongToken("<string>", t)
 		}
 		switch k {
 		case "rows":
 			if t, err := ej.decoder.Token(); err != nil {
 				return nil, err
 			} else if t != json.Delim('[') {
-				return nil, fmt.Errorf("expected '[', got %v", t)
+				return nil, errWrongToken("[", t)
 			}
 			return &ej, nil
 		case "preview":
@@ -96,7 +96,7 @@ func (ej *ExportJob) Next() bool {
 			if t, err := ej.decoder.Token(); err != nil {
 				return ej.setError(err)
 			} else if t != json.Delim(expected) {
-				return ej.setError(fmt.Errorf("expected %v, got %v", expected, t))
+				return ej.setError(errWrongToken(string(expected), t))
 			}
 		}
 		return ej.setError(nil)
@@ -110,21 +110,11 @@ func (ej *ExportJob) Next() bool {
 	}
 	ej.CurrentRow = make(map[string]interface{}, len(values))
 	for i := 0; i < len(values); i++ {
-		var elem interface{}
-		var err error
-		if len(values[i]) > 0 && values[i][0] == '[' {
-			var v []string
-			err = json.Unmarshal(values[i], &v)
-			elem = v
-		} else {
-			var v string
-			err = json.Unmarshal(values[i], &v)
-			elem = v
-		}
+		value, err := decodeValue(values[i])
 		if err != nil {
-			return ej.setError(fmt.Errorf("Can't deserialize << %s >>", string(values[i])))
+			return ej.setError(err)
 		}
-		ej.CurrentRow[ej.Header.Fields[i]] = elem
+		ej.CurrentRow[ej.Header.Fields[i]] = value
 	}
 	return true
 }
