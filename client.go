@@ -67,7 +67,7 @@ func (c *Client) Authenticate() error {
 		return errors.New("no authentication method configured")
 	}
 
-	jm, err := c.Do("POST", "services/auth/login", values)
+	jm, err := c.Do("POST", nil, "auth/login", values)
 	if err != nil {
 		return err
 	}
@@ -89,9 +89,9 @@ func (c *Client) Deauthenticate() {
 	c.sessionKey = ""
 }
 
-func (c *Client) doRaw(method, path string, params url.Values) (io.ReadCloser, error) {
+func (c *Client) doRaw(method string, ns *Namespace, path string, params url.Values) (io.ReadCloser, error) {
 	u := c.baseURL
-	u.Path = path
+	u.Path = ns.String() + path
 	req, _ := http.NewRequest(method, u.String(), strings.NewReader(params.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	if c.sessionKey != "" {
@@ -112,9 +112,9 @@ func (c *Client) doRaw(method, path string, params url.Values) (io.ReadCloser, e
 }
 
 // Do performs a request
-func (c *Client) Do(method, path string, params url.Values) (json.RawMessage, error) {
+func (c *Client) Do(method string, ns *Namespace, path string, params url.Values) (json.RawMessage, error) {
 	params.Set("output_mode", "json")
-	body, err := c.doRaw(method, path, params)
+	body, err := c.doRaw(method, ns, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -128,16 +128,38 @@ func (c *Client) Do(method, path string, params url.Values) (json.RawMessage, er
 }
 
 // Get performs an authenticated GET request.
-func (c *Client) Get(path string, params url.Values) (json.RawMessage, error) {
-	return c.Do("GET", path, params)
+func (c *Client) Get(ns *Namespace, path string, params url.Values) (json.RawMessage, error) {
+	return c.Do("GET", ns, path, params)
 }
 
 // Post performs an authenticated POST request.
-func (c *Client) Post(path string, params url.Values) (json.RawMessage, error) {
-	return c.Do("POST", path, params)
+func (c *Client) Post(ns *Namespace, path string, params url.Values) (json.RawMessage, error) {
+	return c.Do("POST", ns, path, params)
 }
 
 // Delete performs an authenticated DELETE request.
-func (c *Client) Delete(path string, params url.Values) (json.RawMessage, error) {
-	return c.Do("DELETE", path, params)
+func (c *Client) Delete(ns *Namespace, path string, params url.Values) (json.RawMessage, error) {
+	return c.Do("DELETE", ns, path, params)
+}
+
+// Namespace contains optional user and app.
+//
+// The string representataion is "servicesNS/USER/APP/" or "services/"
+// (for nil).
+//
+// Empty strings User or App are translated to "-".
+type Namespace struct{ User, App string }
+
+func (ns *Namespace) String() string {
+	if ns == nil {
+		return "services/"
+	}
+	user, app := ns.User, ns.App
+	if user == "" {
+		user = "-"
+	}
+	if app == "" {
+		app = "-"
+	}
+	return "servicesNS/" + user + "/" + app + "/"
 }

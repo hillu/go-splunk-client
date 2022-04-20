@@ -25,6 +25,7 @@ import (
 // ]
 type APIError struct {
 	// HTTP Status Code
+	URL        string
 	StatusCode int
 	Messages   []struct {
 		Type string `json:"type"`
@@ -38,6 +39,9 @@ func (e APIError) Error() (s string) {
 			s += "; "
 		}
 		s += m.Text
+	}
+	if e.URL != "" {
+		s += fmt.Sprintf("; URL: %s", e.URL)
 	}
 	if e.StatusCode != 0 {
 		s += fmt.Sprintf("; StatusCode %d", e.StatusCode)

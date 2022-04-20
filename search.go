@@ -111,11 +111,11 @@ func (rs *SearchResult) UnmarshalJSON(raw []byte) error {
 }
 
 // SearchBlocking executes a blocking (exec_mode="oneshot") search
-func (c *Client) SearchBlocking(query string, options *SearchOptions) (*SearchResult, error) {
+func (c *Client) SearchBlocking(ns *Namespace, query string, options *SearchOptions) (*SearchResult, error) {
 	params := options.values()
 	params.Set("exec_mode", "oneshot")
 	params.Set("search", query)
-	jd, err := c.Post("services/search/jobs", params)
+	jd, err := c.Post(ns, "search/jobs", params)
 	if err != nil {
 		return nil, fmt.Errorf("can't issue search: %v", err)
 	}

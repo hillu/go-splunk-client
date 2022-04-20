@@ -143,11 +143,11 @@ func (ej *ExportJob) Close() {
 }
 
 // SearchExport performs an "export search".
-func (c *Client) SearchExport(query string, options *SearchOptions) (*ExportJob, error) {
+func (c *Client) SearchExport(ns *Namespace, query string, options *SearchOptions) (*ExportJob, error) {
 	params := options.values()
 	params.Set("search", query)
 	params.Set("output_mode", "json_rows")
-	body, err := c.doRaw("POST", "services/search/jobs/export", params)
+	body, err := c.doRaw("POST", ns, "search/jobs/export", params)
 	if err != nil {
 		return nil, fmt.Errorf("can't issue search: %v", err)
 	}

@@ -22,7 +22,7 @@ func makeAuthorizedTestClient(t *testing.T) *Client {
 
 func TestAuth(t *testing.T) {
 	c := makeAuthorizedTestClient(t)
-	sr, err := c.SearchBlocking("search index=_internal sourcetype=splunkd | fields * | head 10", nil)
+	sr, err := c.SearchBlocking(nil, "search index=_internal sourcetype=splunkd | fields * | head 10", nil)
 	if err != nil {
 		t.Errorf("search failed: %v", err)
 	}
@@ -30,13 +30,13 @@ func TestAuth(t *testing.T) {
 	{
 		uc := *c
 		uc.sessionKey = "invalid"
-		_, err := uc.SearchBlocking("search index=_internal sourcetype=splunkd | fields * | head 10", nil)
+		_, err := uc.SearchBlocking(nil, "search index=_internal sourcetype=splunkd | fields * | head 10", nil)
 		if err == nil {
 			t.Error("unauthenticated search succeeded (but shouldn't have)")
 		}
 		t.Logf("expected error: %+v", err)
 	}
-	_, err = c.SearchBlocking("gobbledigoop", nil)
+	_, err = c.SearchBlocking(nil, "gobbledigoop", nil)
 	if err == nil {
 		t.Error("search with invalid syntax succeeed (but shouldn't have)")
 	}
@@ -44,7 +44,7 @@ func TestAuth(t *testing.T) {
 
 func TestExport(t *testing.T) {
 	c := makeAuthorizedTestClient(t)
-	ej, err := c.SearchExport(`makeresults count=300 | eval foo="bar" | head 200`, nil)
+	ej, err := c.SearchExport(nil, `makeresults count=300 | eval foo="bar" | head 200`, nil)
 	if err != nil {
 		t.Fatalf("SearchExport: %+v", err)
 	}
@@ -60,19 +60,19 @@ func TestExport(t *testing.T) {
 		t.Errorf("count = %d, expected 200", count)
 	}
 
-	if _, err := c.SearchExport(`gobbledigook`, nil); err == nil {
+	if _, err := c.SearchExport(nil, `gobbledigook`, nil); err == nil {
 		t.Errorf("export: failed to report error")
 	} else {
 		t.Logf("export: error=%+v", err)
 	}
 
-	if _, err := c.SearchExport(`makeresults count=1 | eval gobbledigook`, nil); err == nil {
+	if _, err := c.SearchExport(nil, `makeresults count=1 | eval gobbledigook`, nil); err == nil {
 		t.Errorf("export: failed to report error")
 	} else {
 		t.Logf("export: error=%+v", err)
 	}
 
-	ej, err = c.SearchExport(`makeresults count=1 | eval foo=1 | table _time foo bar`, nil)
+	ej, err = c.SearchExport(nil, `makeresults count=1 | eval foo=1 | table _time foo bar`, nil)
 	if err != nil {
 		t.Errorf("export: unexpected error %+v", err)
 	} else {
@@ -80,7 +80,15 @@ func TestExport(t *testing.T) {
 		t.Logf("results: %#v", results)
 	}
 
-	ej, err = c.SearchExport(`search index=* | head 1`, nil)
+	ej, err = c.SearchExport(&Namespace{}, `makeresults count=1 | eval foo=1 | table _time foo bar`, nil)
+	if err != nil {
+		t.Errorf("export (ns:-/-): unexpected error %+v", err)
+	} else {
+		results := ej.Drain()
+		t.Logf("results: %#v", results)
+	}
+
+	ej, err = c.SearchExport(nil, `search index=* | head 1`, nil)
 	if err != nil {
 		t.Errorf("export: unexpected error %+v", err)
 	} else if results := ej.Drain(); ej.Error != nil {
