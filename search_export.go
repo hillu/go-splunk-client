@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"runtime"
 )
 
 // ExportJob is a generator for export searches
@@ -30,10 +31,11 @@ type ExportJob struct {
 }
 
 func newExportJob(stream io.ReadCloser) (*ExportJob, error) {
-	ej := ExportJob{
+	ej := &ExportJob{
 		stream:  stream,
 		decoder: json.NewDecoder(stream),
 	}
+	runtime.SetFinalizer(ej, (*ExportJob).Close)
 	if t, err := ej.decoder.Token(); err != nil {
 		return nil, err
 	} else if t != json.Delim('{') {
@@ -56,7 +58,7 @@ func newExportJob(stream io.ReadCloser) (*ExportJob, error) {
 			} else if t != json.Delim('[') {
 				return nil, errWrongToken("[", t)
 			}
-			return &ej, nil
+			return ej, nil
 		case "preview":
 			if err := ej.decoder.Decode(&ej.Header.Preview); err != nil {
 				return nil, err
@@ -127,10 +129,12 @@ func (ej *ExportJob) setError(err error) bool {
 }
 
 // Drain returns all remaining records from the export search. This may block.
-func (ej *ExportJob) Drain() (r []map[string]interface{}) {
+func (ej *ExportJob) Drain() (r []map[string]interface{}, err error) {
 	for ej.Next() {
 		r = append(r, ej.CurrentRow)
 	}
+	ej.Close()
+	err = ej.Error
 	return
 }
 

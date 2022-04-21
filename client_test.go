@@ -75,24 +75,26 @@ func TestExport(t *testing.T) {
 	ej, err = c.SearchExport(nil, `makeresults count=1 | eval foo=1 | table _time foo bar`, nil)
 	if err != nil {
 		t.Errorf("export: unexpected error %+v", err)
+	} else if results, err := ej.Drain(); err != nil {
+		t.Errorf("export, drain: unexpected error %+v", err)
 	} else {
-		results := ej.Drain()
 		t.Logf("results: %#v", results)
 	}
 
 	ej, err = c.SearchExport(&Namespace{}, `makeresults count=1 | eval foo=1 | table _time foo bar`, nil)
 	if err != nil {
 		t.Errorf("export (ns:-/-): unexpected error %+v", err)
+	} else if results, err := ej.Drain(); err != nil {
+		t.Errorf("export, drain: unexpected error %+v", err)
 	} else {
-		results := ej.Drain()
 		t.Logf("results: %#v", results)
 	}
 
 	ej, err = c.SearchExport(nil, `search index=* | head 1`, nil)
 	if err != nil {
 		t.Errorf("export: unexpected error %+v", err)
-	} else if results := ej.Drain(); ej.Error != nil {
-		t.Errorf("export: unexpected error %+v", ej.Error)
+	} else if results, err := ej.Drain(); err != nil {
+		t.Errorf("export: unexpected error %+v", err)
 	} else if len(results) != 1 {
 		t.Error("export: short read")
 	} else {
