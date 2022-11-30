@@ -1,7 +1,6 @@
 package splunk
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,8 +25,7 @@ type ExportJob struct {
 	stream  io.ReadCloser
 	decoder *json.Decoder
 
-	buffered *bufio.Reader
-	done     bool
+	done bool
 }
 
 func newExportJob(stream io.ReadCloser) (*ExportJob, error) {
@@ -92,8 +90,8 @@ func (ej *ExportJob) Next() bool {
 	if ej.done {
 		return false
 	}
-	var values []json.RawMessage
 	if !ej.decoder.More() {
+		// We have reached the end of the "rows":[ ... ] array
 		for _, expected := range "]}" {
 			if t, err := ej.decoder.Token(); err != nil {
 				return ej.setError(err)
@@ -103,6 +101,7 @@ func (ej *ExportJob) Next() bool {
 		}
 		return ej.setError(nil)
 	}
+	var values []json.RawMessage
 	if err := ej.decoder.Decode(&values); err != nil {
 		return ej.setError(err)
 	}
