@@ -150,6 +150,7 @@ func (c *Client) SearchExport(ns *Namespace, query string, options *SearchOption
 	params := options.values()
 	params.Set("search", query)
 	params.Set("output_mode", "json_rows")
+	params.Set("preview", "false") // <- undocumented parameter. Stay classy, Splunk!
 	body, err := c.doRaw("POST", ns, "search/jobs/export", params)
 	if err != nil {
 		return nil, fmt.Errorf("can't issue search: %v", err)
